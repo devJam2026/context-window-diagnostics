@@ -481,7 +481,7 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
         
         // Construct the new summary section block inside prompt payload
         const summaryContent = (
-            `[GATEWAY STATE MEMORY NODE - COMPACTION V3]\n` +
+            `[GATEWAY STATE MEMORY NODE - COMPACTED]\n` +
             `Summary: ${compactionRes.summary}\n` +
             `Retained Facts: ${compactionRes.retainedFacts.join(" | ")}\n` +
             `Open Actions: ${compactionRes.openTasks.join(" | ")}`
@@ -537,7 +537,7 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
         };
         
         const summaryContent = (
-            `[GATEWAY STATE MEMORY NODE - COMPACTION V3]\n` +
+            `[GATEWAY STATE MEMORY NODE - COMPACTED]\n` +
             `Summary: ${mockRes.summary}\n` +
             `Retained Facts: ${mockRes.retainedFacts.join(" | ")}\n` +
             `Open Actions: ${mockRes.openTasks.join(" | ")}`

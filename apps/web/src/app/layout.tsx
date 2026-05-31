@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Enterprise Context Gateway (V3)",
+  title: "Enterprise Context Gateway",
   description: "Pre-LLM edge ingestion profiler, eviction sandbox, and structured compaction terminal.",
 };
 

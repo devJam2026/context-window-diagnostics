@@ -33,7 +33,7 @@ export default function CompactionPanel() {
       <div className="lg:col-span-1 flex flex-col gap-6">
         <div className="glass-card p-6 rounded-3xl flex flex-col gap-6">
           <div>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">V3 Engine Control</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Compaction Control</span>
             <h3 className="font-black text-base text-slate-800 tracking-tight mt-0.5">
               OpenAI Compaction Terminal
             </h3>

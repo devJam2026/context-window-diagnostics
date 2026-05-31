@@ -27,9 +27,9 @@ from scenarios import get_scenarios
 # ==============================================================================
 
 app = FastAPI(
-    title="Enterprise Context Window & Payload Diagnostics Gateway (V3)",
+    title="Enterprise Context Window & Payload Diagnostics Gateway",
     description="Pre-LLM edge profiler and self-healing context compaction proxy.",
-    version="3.0.0"
+    version="1.0.0"
 )
 
 # Enable CORS middleware to allow seamless Next.js frontend communication (standard port 3000)
@@ -44,7 +44,7 @@ app.add_middleware(
 @app.get("/health")
 def health_check():
     """Simple API health check endpoint verifying proxy routing state."""
-    return {"status": "healthy", "service": "diagnostics-gateway", "version": "3.0.0"}
+    return {"status": "healthy", "service": "diagnostics-gateway", "version": "1.0.0"}
 
 @app.post("/api/context/analyze", response_model=AnalyzeResponseSchema)
 def analyze_context(payload: AnalyzeRequestSchema):

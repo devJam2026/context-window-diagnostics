@@ -1,4 +1,4 @@
-# 📋 Enterprise Context Gateway & Payload Diagnostics Gateway (V3)
+# 📋 Enterprise Context Window & Payload Diagnostics Gateway
 
 The **Enterprise Context Gateway** is a production-style pre-LLM defensive middleware and diagnostics application. It treats the LLM context window as a **finite, high-cost runtime memory buffer**, profiling, optimizing, and compressing complex multi-part payloads *before* they make expensive cloud API roundtrips.
 
@@ -97,7 +97,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_SUMMARY_MODEL=gpt-4o-mini
 OPENAI_SUMMARY_TEMPERATURE=0
 ```
-> **Note:** If no `OPENAI_API_KEY` is provided, the gateway automatically switches to a high-fidelity **simulated mock fallback mode**, allowing you to inspect the entire V3 compaction interface immediately without billing!
+> **Note:** If no `OPENAI_API_KEY` is provided, the gateway automatically switches to a high-fidelity **simulated mock fallback mode**, allowing you to inspect the entire compaction interface immediately without billing!
 
 ### 2. Start the Backend API (FastAPI)
 Navigate to `apps/api/`, set up your environment, and execute:

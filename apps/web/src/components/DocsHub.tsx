@@ -228,14 +228,14 @@ export default function DocsHub() {
                 <Terminal className="w-7 h-7 text-indigo-600" /> Advanced Compaction & Lost-in-the-Middle
               </h1>
               <p className="font-semibold text-slate-500 text-sm">
-                V3 integrates OpenAI Structured Outputs compaction loops, self-healing retries, and positional U-curve diagnostics.
+                The gateway integrates OpenAI Structured Outputs compaction loops, self-healing retries, and positional U-curve diagnostics.
               </p>
               
               <hr className="border-slate-200" />
 
               <h2 className="text-base font-extrabold text-slate-800">1. Summarized Compaction Engine</h2>
               <p className="font-medium">
-                Instead of loose text summaries, V3 enforces structured formats via OpenAI response schemas.
+                Instead of loose text summaries, the compactor enforces structured formats via OpenAI response schemas.
                 This isolates retained facts, open actions, and dropped noise into Pydantic target structures.
               </p>
 

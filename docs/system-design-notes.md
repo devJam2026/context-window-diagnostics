@@ -1,6 +1,6 @@
 # 🛠️ System Design Notes: Compaction & Lost-in-the-Middle
 
-This document outlines the advanced, production-grade V3 design patterns implemented in the Context Window Gateway: **OpenAI Structured Output Compaction**, **Self-Healing Fallbacks**, and **Lost-in-the-Middle Attention Profiling**.
+This document outlines the advanced, production-grade design patterns implemented in the Context Window Gateway: **OpenAI Structured Output Compaction**, **Self-Healing Fallbacks**, and **Lost-in-the-Middle Attention Profiling**.
 
 ---
 
