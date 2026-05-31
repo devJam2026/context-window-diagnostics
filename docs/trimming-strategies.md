@@ -1,5 +1,8 @@
 # ⚖️ Context Truncation & Eviction Strategies
 
+> [!NOTE]
+> This document outlines the modular algorithms used to prune overflowing payloads. For the formal engineering justifications and architectural decision records (ADRs), see the [Architecture Decision Records Log](./architecture-decision-records.md).
+
 When the gateway detects a context budget overflow ($U > 100\%$) or warns about extreme saturation ($U \ge 90\%$), it triggers the **Optimization Engine**. Developers can simulate, iterate, and apply four modular eviction algorithms to prune payloads safely without losing critical operational integrity.
 
 ---

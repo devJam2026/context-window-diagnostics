@@ -1,6 +1,10 @@
 # 🛠️ System Design Notes: Compaction & Lost-in-the-Middle
 
+> [!NOTE]
+> This document provides deep-dive analytical notes on the mathematical and cognitive mechanics of the gateway. For the formal engineering justifications and architectural decision records (ADRs), see the [Architecture Decision Records Log](./architecture-decision-records.md).
+
 This document outlines the advanced, production-grade design patterns implemented in the Context Window Gateway: **OpenAI Structured Output Compaction**, **Self-Healing Fallbacks**, and **Lost-in-the-Middle Attention Profiling**.
+
 
 ---
 

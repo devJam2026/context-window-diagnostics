@@ -20,9 +20,11 @@ export default function ScenarioSelector() {
     executeAnalyzePayload
   } = useGatewayStore();
 
-  // Load scenarios from API gateway on mounting
+  // Load scenarios from API gateway on mounting, only if not already cached in Zustand
   useEffect(() => {
-    fetchScenarios();
+    if (Object.keys(scenarios).length === 0) {
+      fetchScenarios();
+    }
   }, []);
 
   const handleLoadScenario = (key: string) => {

@@ -1,6 +1,10 @@
 # 📐 Token Budgeting & Telemetry Mathematics
 
+> [!NOTE]
+> This document details the mathematical modeling and profiling equations used in context calculations. For the formal engineering justifications and architectural decision records (ADRs), see the [Architecture Decision Records Log](./architecture-decision-records.md).
+
 To prevent downstream failures, a context gateway must treat input prompts not as arbitrary text strings, but as **rigid byte streams** mapped to numeric token sequences. This guide outlines the exact mathematical models and profiling equations built into our diagnostics middleware.
+
 
 ---
 

@@ -1,5 +1,8 @@
 # 🏗️ Context Gateway System Architecture
 
+> [!NOTE]
+> This document describes the runtime components and data flow of the gateway. For the formal engineering justifications, architectural trade-offs, and decision records (ADRs), see the [Architecture Decision Records Log](./architecture-decision-records.md).
+
 In high-scale enterprise AI applications, the LLM context window must be managed as a **finite, high-cost runtime memory buffer**. Blindly throwing unmonitored strings at downstream API completions results in:
 * **OutOfMemory (OOM) API Crashes:** Exceeding context limits causes immediate request failures.
 * **Accuracy Degradation:** Verbose, unoptimized context triggers "lost-in-the-middle" attention saturation.
@@ -7,6 +10,7 @@ In high-scale enterprise AI applications, the LLM context window must be managed
 * **Response Latency Spikes:** Prompt compilation and generation durations scale with overall payload size.
 
 To defend against these failure modes, this project introduces a **pre-LLM diagnostics and optimization gateway**.
+
 
 ---
 
