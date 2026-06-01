@@ -1,62 +1,56 @@
-# 🎓 Step-by-Step Learning Guide: Context Window Engineering
+# 📖 Master Playbook & Runbook: Context Window Engineering
 
-This guide is structured as both an interactive student workshop manual and a step-by-step master curriculum for context window engineering. It is designed to be highly engaging, visual, and resilient for live presentations.
-
----
-
-## 🎤 Student Workshop & Interactive Live Demos
-*Use this slide-by-slide guide, simple analogies, and interactive games to present this project to an audience of students.*
-
-### 🧱 SLIDE 1: What is a Token? (The Lego Analogy)
-*   **The Analogy**: When you build a Lego castle, you don't use complete, pre-molded plastic walls. You snap together tiny, standard bricks. 
-*   **The Concept**: AI models do not read raw English words. They read **tokens**—which are word pieces (sub-words). E.g., the word `"context"` is split into two token bricks: `["con", "text"]`.
-*   **Classroom Action**: Show the students how the gateway tokenizer counts their text in real-time. Type `"Lego castle"` into the Active Input box and see how many "token bricks" are computed.
+This playbook serves as a comprehensive master reference and runbook for context window engineering in enterprise GenAI gateways. It outlines high-fidelity diagnostic workflows, mathematical constraints, and advanced compaction strategies.
 
 ---
 
-### 🪣 SLIDE 2: The Finite Bucket (Why Context Limits Matter)
-*   **The Analogy**: Imagine your AI is a student taking a test, but they have a desk (the context window) that can only hold 8 sheets of paper. If they put 7 sheets of reference textbook pages on the desk, they only have 1 sheet left to write their exam answers.
-*   **The Concept**: Input prompts and output answers compete for the same model capacity. If your prompt is too long, the AI will crash or cut off mid-sentence.
-*   **Classroom Action**: Drag the **Reserved Output** slider up and down on the dashboard. Show the students how increasing the size of their answer (output space) directly shrinks the desk size available for their textbook notes (input budget).
+## 🏗️ Core Architectural Concepts & Interactive Validation Workflows
+*Use these architectural concepts and diagnostic steps to validate the gateway's performance and optimization patterns.*
+
+### 🧱 SECTION 1: Tokenization Mechanics (Sub-word Subsystem)
+*   **The Concept**: Large language models process text in sub-word fragments called **tokens** rather than raw character strings or whole words. E.g., the word `"context"` is parsed into discrete token IDs (typically representing `["con", "text"]` in standard BPE vocabularies).
+*   **Engineering Validation**: Type custom prompts (e.g., `"Ingestion gateway test payload"`) into the Active Input text area on the dashboard and observe the real-time tiktoken sub-word counter updates.
 
 ---
 
-### 🃏 SLIDE 3: Interactive Classroom Game: Find the Card! (Lost-in-the-Middle)
-*   *Run this interactive magic trick to capture the room's attention:*
-*   **The Game**: Show the students a wall of text containing 5,000 words. Place a single secret code (`VIP-RETAIL-2026`) in the exact geometric center. Ask the students to find it in 3 seconds. They will fail, proving how hard it is to locate information buried in noise.
-*   **The Concept**: AI models suffer from the same attention valley. They retrieve details at the very beginning or end of prompts perfectly, but "forget" details placed in the center.
-*   **Classroom Action**: 
-    1. Load **`Trap 5: Lost-in-the-Middle`** from the presets. Show how the secret code is buried in the center.
-    2. Run **`FIFO Truncation`** or **`OpenAI Compaction`**. 
-    3. Show how the optimizer sweeps away the noise, moving the secret passcode out of the center valley and placing it right in front of the AI's active focus window!
+### 🪣 SECTION 2: Dynamic Shared Memory (Shared Input/Output Buffers)
+*   **The Concept**: Prompt ingestion space (input) and completion space (output generation) share a singular, finite model context window buffer. Allocating excessive input tokens directly starves the completion buffer, leading to abrupt truncation errors or API out-of-memory (OOM) faults.
+*   **Engineering Validation**: Modify the **Reserved Output** slider on the configuration panel. Observe how increasing the output reserve mathematically reduces the safe available input budget ($A_{\text{input}}$).
 
 ---
 
-### 🧽 SLIDE 4: The Ingestion Gateway (The Heroes of Prompt Engineering)
-*   **The Analogy**: The gateway acts as a bouncer at the club door. If the club is full (Overflow), the bouncer stops the crowd (local block) and asks them to split into smaller groups or condense their invite list.
-*   **The Concepts**:
-    *   **FIFO (First-In, First-Out)**: The bouncer makes the oldest guests leave first to make room for new ones.
-    *   **Sliding Window**: The bouncer only keeps the last $N$ people who arrived.
-    *   **Priority Matrix**: The bouncer lets VIPs (System Prompt and active queries) in for free, while systematic dropping is applied to low-rank guests.
-    *   **Structured Compaction**: Replaces 10 verbose pages of past chat history with a single index card summarizing facts and unresolved tasks.
+### 🃏 SECTION 3: Attentional Valley Mitigation (Lost-in-the-Middle Phenomenon)
+*   **The Concept**: Transformer-based models exhibit a U-curve attentional response, demonstrating near-perfect retrieval of facts located at the absolute boundaries (primacy and recency) of long prompts, but suffering severe accuracy drops when critical data is buried in the geometric center of the context payload.
+*   **Engineering Validation**: 
+    1. Load the **`Lost-in-the-Middle Demo (Trap 5)`** stress preset to place the activation code in the exact center of a bloated token array.
+    2. Execute **`FIFO Truncation`** or **`OpenAI Compaction`**.
+    3. Observe how the optimization engine strips out context noise, bringing the activation passcode out of the attentional valley and closer to the active recency window.
 
 ---
 
-### 📡 SLIDE 5: Classroom Wi-Fi Down? (Offline Resilience Mode)
-*   **The Analogy**: Imagine going to give a presentation and the school Wi-Fi goes down! A standard web app would crash, showing an ugly red connection error.
-*   **The Concept**: **High-Fidelity Offline Sandbox Mode**. The gateway store contains a fully local fallback. If it detects the backend server is offline, it estimates tokens using client-side sub-word counts and runs pruning logic directly in the browser!
-*   **Classroom Action**: Disconnect your local server or toggle the offline simulate switch. Demonstrate that the eviction slider, priority drops, and memory visualization still work flawlessly inside the browser without a backend.
+### 🧽 SECTION 4: Edge Middleware Optimization (Pruning & Compaction Subsystems)
+*   **The Concept**: High-performance gateways employ automated, granular eviction heuristics to safely scale down context footprints under load:
+    *   **FIFO (First-In, First-Out) Truncation**: Evicts the oldest history turns chronologically.
+    *   **Sliding Window**: Restricts conversation scope to a rolling $N$-turn threshold.
+    *   **Priority-Based Retention**: Prunes optional context segments based on metadata priority tags (Priority 8 RAG docs up to Priority 3 summaries), protecting required rules (Priority 1 system instructions).
+    *   **Structured Compaction**: Replaces voluminous, raw multi-turn histories with structured JSON summaries.
 
 ---
 
-## 🗺️ Learning Path Overview
+### 📡 SECTION 5: High-Fidelity Client-Side Fallback (Offline Resiliency)
+*   **The Concept**: Enterprise UI systems must tolerate transient backend network failures. The gateway dashboard incorporates a client-side state machine (Zustand) with heuristic character-based token count models and memory-pruning simulations that execute entirely in-browser when backend services are unreachable.
+*   **Engineering Validation**: Switch the dashboard to simulated offline mode (or terminate the API backend). Verify that eviction sliders, priority drops, and memory stack visualizations execute instantly inside the browser memory.
+
+---
+
+## 🗺️ Engineering Path Overview
 
 ```mermaid
 graph TD
-    A[Lesson 1: Token Budgeting] --> B[Lesson 2: Payload Design]
-    B --> C[Lesson 3: Eviction Sandbox]
-    C --> D[Lesson 4: Structured Compaction]
-    D --> E[Lesson 5: Attentional Valleys]
+    A[Module 1: Token Budgeting] --> B[Module 2: Payload Design]
+    B --> C[Module 3: Eviction Sandbox]
+    C --> D[Module 4: Structured Compaction]
+    D --> E[Module 5: Attentional Valleys]
     
     style A fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc
     style B fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc
@@ -67,12 +61,12 @@ graph TD
 
 ---
 
-## 📚 Lesson 1: Token Budgeting & Available Budgets
+## 📚 Module 1: Token Budgeting & Capacity Management
 
 ### The Concept:
 You cannot throw text blindly at an LLM context window. Input prompts and generated completions share the exact same structural memory buffer. E.g., if you saturate an $8,192$-token context window with $8,000$ tokens of input text, the model has only $192$ tokens left to generate its reply. If it needs to write a $300$-token email, it will trigger an **abrupt output truncation** or **OOM API crash**.
 
-### Step-by-Step Action in the Dashboard:
+### Step-by-Step Validation:
 1.  Navigate to the **Telemetry Profiler** tab in the Left Sidebar.
 2.  Look at **Panel A: Runtime Configuration**. Select the **`Standard Context (8,192 tokens)`** preset.
 3.  Note that the circular **`Utilization Dial`** shows your budget size is **`6,372 tokens`**, not 8,192!
@@ -86,7 +80,7 @@ You cannot throw text blindly at an LLM context window. Input prompts and genera
 
 ---
 
-## 📚 Lesson 2: Multi-Part Ingestion Payload Design
+## 📚 Module 2: Multi-Part Ingestion Payload Design
 
 ### The Concept:
 In enterprise GenAI, we do not compose prompts as single, flat strings. Instead, prompts are constructed as **Structured Context Arrays** where each item has:
@@ -94,7 +88,7 @@ In enterprise GenAI, we do not compose prompts as single, flat strings. Instead,
 *   A strategic **Priority Value** (Priority 1 is highest, Priority 8 is lowest).
 *   A **`required` Boolean Flag** (required=true is protected from pruning).
 
-### Step-by-Step Action in the Dashboard:
+### Step-by-Step Validation:
 1.  Look at **Panel B: Payload Builder Canvas**. Toggle between the tabs:
     *   **`System Prompt`**: Core behavioral guidelines. E.g., "Act as a professional customer support agent." (Priority 1, required=true).
     *   **`Chat Turns`**: Active simulated conversation turns (Priority 7, required=false).
@@ -106,7 +100,7 @@ In enterprise GenAI, we do not compose prompts as single, flat strings. Instead,
 
 ---
 
-## 📚 Lesson 3: Eviction Sandbox & Algorithmic Prunings
+## 📚 Module 3: Eviction Sandbox & Algorithmic Pruning
 
 ### The Concept:
 When your payload is too large, the system risk state advances to **Warning (Yellow)**, **Critical (Neon Crimson)**, or **Overflow (Red)**. To restore the prompt to a safe threshold, the gateway executes modular eviction strategies:
@@ -116,7 +110,7 @@ When your payload is too large, the system risk state advances to **Warning (Yel
 *   **Priority-Based Retention**: Prunes low-value optional items first (Priority 8 RAG docs $\rightarrow$ Priority 7 old history $\rightarrow$ Priority 6 tool JSON), keeping high-value items intact.
 *   **RAG Document Trim**: Selectively prunes lower-relevance document chunks.
 
-### Step-by-Step Action in the Dashboard:
+### Step-by-Step Validation:
 1.  Navigate to the **`Stress Presets`** sidebar menu.
 2.  Click **`Load Stress Preset`** on **`RAG Payload Overflow (Trap 3)`**.
 3.  Note that the dashboard immediately loads 15 dense retrieved document chunks. The telemetry dial surges to **`116%`** in a **`Hard Overflow`** state!
@@ -127,7 +121,7 @@ When your payload is too large, the system risk state advances to **Warning (Yel
 
 ---
 
-## 📚 Lesson 4: OpenAI Structured Compaction & Self-Healing
+## 📚 Module 4: OpenAI Structured Compaction & Self-Healing
 
 ### The Concept:
 Standard text summarizers introduce hallucinations or loose conversational filler. In this application, we compress stale history turns into type-safe data nodes using **OpenAI Structured Outputs** (`response_format` referencing a strict Pydantic schema). 
@@ -140,7 +134,7 @@ The compactor splits history into:
 
 If schema parsing fails, a **Self-Healing Loop** dispatches exactly one retry containing the exception log. If it fails again, a **Degraded Fallback** preserves the raw history, preventing session data loss.
 
-### Step-by-Step Action in the Dashboard:
+### Step-by-Step Validation:
 1.  Navigate to the **`Stress Presets`** tab and load **`50-Turn Latency Drift (Trap 2)`**.
 2.  Note how a long support chat has bloated your history tokens.
 3.  Navigate to the **`Compaction Terminal`** tab in the sidebar.
@@ -149,7 +143,7 @@ If schema parsing fails, a **Self-Healing Loop** dispatches exactly one retry co
 
 ---
 
-## 📚 Lesson 5: Positional Lost-in-the-Middle Valleys
+## 📚 Module 5: Positional Lost-in-the-Middle Valleys
 
 ### The Concept:
 LLMs have an **attentional U-curve**: they excel at retrieving information located at the absolute beginning (primacy effect) or end (recency effect) of long context prompts, but struggle to retrieve details placed in the exact center.
@@ -162,7 +156,7 @@ xychart-beta
     line [98, 75, 32, 28, 68, 97]
 ```
 
-### Step-by-Step Action in the Dashboard:
+### Step-by-Step Validation:
 1.  Navigate to **`Stress Presets`** and load **`Lost-in-the-Middle Demo (Trap 5)`**.
 2.  Review your history. Note that standard chat filler spans thousands of tokens, but in the exact center ($50\%$ positional depth), we embedded a critical activation code: `VIP-RETAIL-2026`.
 3.  If you send this flat prompt to standard models, they frequently fail to answer correctly because the key info is lost in the attentional valley.
@@ -171,14 +165,14 @@ xychart-beta
 
 ---
 
-## 👨‍🏫 Classroom Q&A Cheat Sheet (For the Presenter)
-*Prepare for these tricky questions students love to ask during live demos:*
+## 🛠️ Production Verification & Edge-Case Q&A
+*Operational reference for addressing critical system edge cases:*
 
-### Q1: "Why don't we just use a model with a 2-million context window (like Gemini) and send everything?"
+### Q1: "Why don't we just use a model with a 2-million context window and send everything?"
 *   **Answer**: Three major reasons:
     1.  **Cost**: Large context is extremely expensive. Running millions of tokens on every message will exhaust your budget in minutes.
     2.  **Latency (TTFT)**: Processing a massive prompt takes significant compute time, raising Time-to-First-Token latency to several seconds, which ruins user experience.
-    3.  **Accuracy (Lost-in-the-Middle)**: Even if a model *can* accept 2 million tokens, its recall is not uniform. Attentional decay causes the model to overlook critical facts buried in massive payloads.
+    3.  **Accuracy (Lost-in-the-Middle)**: Even if a model can accept 2 million tokens, its recall is not uniform. Attentional decay causes the model to overlook critical facts buried in massive payloads.
 
 ### Q2: "Why do we need a 10% Safety Buffer on token counts?"
 *   **Answer**: The gateway counts tokens locally using `tiktoken`. However, the remote LLM hosting API (e.g., OpenAI or Anthropic) might run a slightly different tokenizer, append hidden chat format tokens (like `<|im_start|>system\n`), or add metadata behind the scenes. The **10% Safety Buffer** ensures that if the local count is slightly off, the payload still will not overflow the remote model's API limit.
@@ -188,31 +182,30 @@ xychart-beta
 
 ---
 
-## 🎮 Hands-on Student Lab Challenges
-*Have the students complete these 3 challenges on the dashboard:*
+## 🧪 Diagnostic Verification Scenarios
+*Perform these three diagnostic procedures to verify runtime optimization behavior:*
 
-### 🏆 Lab 1: The "Wi-Fi Down" Sandbox Simulation
-*   **Goal**: Prove the application's client-side resilience.
-*   **Action**: 
-    1. Turn off your backend server or switch the app into Simulated Offline mode.
-    2. Type random text into the payload sections.
-    3. Verify that the tokenizer still calculates estimated token sizes and runs eviction algorithms locally in your browser.
-*   **Key Takeaway**: Enterprise apps must be defensively engineered. The user should never see a broken white screen when third-party servers are down.
+### 🏆 Scenario 1: Offline Sandbox & Local Emulation
+*   **Objective**: Validate the gateway's client-side failover state and diagnostic resilience.
+*   **Procedure**: 
+    1. Interrupt backend API connectivity (or toggle Simulated Offline mode on the UI).
+    2. Input unstructured payloads across active sections.
+    3. Verify that the frontend state-machine executes sub-word estimations and sandbox pruning heuristics locally inside the browser.
+*   **Architect's Note**: Enterprise integrations must achieve defensive resilience. Interactive telemetry and failover systems must gracefully degrade to local sandbox memory representations when remote model endpoints or API gateways are offline.
 
-### 🏆 Lab 2: The Bouncer Priority Puzzle
-*   **Goal**: Bring an overflowing payload down to a "Safe" state without losing any "System Prompt" content.
-*   **Action**:
-    1. Load **`Trap 3: RAG Payload Overflow`**.
-    2. In the Truncation Sandbox, select **`Priority-Based Retention`**.
-    3. Click **`Run Optimization`**.
+### 🏆 Scenario 2: Priority-Based Retention Verification
+*   **Objective**: Confirm optimal preservation of core system guidelines and user objectives under high load.
+*   **Procedure**:
+    1. Load the **`Trap 3: RAG Payload Overflow`** preset.
+    2. Set the optimization policy to **`Priority-Based Retention`** inside the sandbox.
+    3. Run the optimization sequence.
     4. Confirm that lower-priority items (Priority 8 documents) were evicted, while the crucial behavioral guidelines (Priority 1 system prompt) remained untouched.
-*   **Key Takeaway**: All context data is not created equal. Priority tags allow intelligent gatekeeping.
+*   **Architect's Note**: Prompt payloads are heterogeneous structures. Using strict priority registers guarantees that critical behavioral properties remain intact during budget constraints.
 
-### 🏆 Lab 3: Compaction Fact Check
-*   **Goal**: Compress a bloated chat history while retaining a critical order number.
-*   **Action**:
-    1. In the Payload Builder, add a chat turn containing: `"Hi, I need assistance with Order #ABC-98765. It hasn't arrived yet."`
-    2. Add several paragraphs of conversational filler.
-    3. Run **`Execute Summarized Compaction`**.
-    4. Verify that the order number `#ABC-98765` is successfully captured in the **`retainedFacts`** box of the compacted output.
-*   **Key Takeaway**: Compaction isolates the signal from the noise, protecting both context budgets and critical data.
+### 🏆 Scenario 3: Structured Compaction Integrity Check
+*   **Objective**: Validate state retention and schema conformity under deep context pruning.
+*   **Procedure**:
+    1. Inject a multi-turn history turn containing specific transaction data: `"Hi, I need assistance with Order #ABC-98765. It hasn't arrived yet."` followed by conversational noise.
+    2. Click **`Execute Summarized Compaction`** to launch the structured API.
+    3. Verify that the transaction code `#ABC-98765` is preserved exactly inside the `retainedFacts` schema array.
+*   **Architect's Note**: Compaction must strip conversational noise while programmatically protecting key operational variables.

@@ -55,7 +55,7 @@ context-window-diagnostics/
 ├── docs/                             # Developer Documentation Library
 │   ├── architecture.md               # System Blueprint & Runbook
 │   ├── architecture-decision-records.md # Formal Architectural Decision Log (ADRs)
-│   ├── learning-guide.md             # Step-by-Step Learning Guide & Student Workshop
+│   ├── learning-guide.md             # Context Window Engineering Master Playbook
 │   ├── requirements.md               # Detailed Requirement & CEO Business Case
 │   ├── system-design-notes.md        # Deep-Dive Theoretical & Cognitive Mechanics
 │   ├── token-budgeting.md            # Mathematical budgeting equations
@@ -111,12 +111,3 @@ $$\text{Utilization } (U) = \frac{T_{\text{used}}}{A_{\text{input}}}$$
 * **Warning:** $70\% \le U < 90\%$ (minor latency danger)
 * **Critical:** $90\% \le U \le 100\%$ (extreme lost-in-the-middle zone)
 * **Overflow:** $U > 100\%$ (blocked by gateway)
-
----
-
-## 💼 System Design Interview Defense Pitch
-
-When a system architect evaluates your context engineering capabilities, state:
-> *"I treat the LLM context window as a highly constrained system memory buffer. In high-scale architectures, I never dispatch loose, unmonitored strings directly to a third-party API. Instead, I implement a dedicated ingestion token diagnostics proxy.
->
-> Using C++ optimized BPE token counters with SHA-256 content caching, my gateway evaluates safe Available Input Budgets in under 15ms. If utilization crosses safety margins, the gateway applies automated context eviction policies—such as priority matrix prunings, sliding window cuts, or type-safe OpenAI Structured Output compactions—to keep payloads within budget boundaries. This mitigates out-of-memory crashes, bounds latency roundtrips, preserves semantic retrieval accuracy, and prevents cloud spending inflation."*

@@ -2,7 +2,7 @@
 
 This document serves as the formal **Architecture Decision Log (ADL)** for the Context Gateway. It captures the critical architectural choices made during the system's design phase, the engineering forces and constraints that drove them, the alternatives considered, and the resulting technical tradeoffs.
 
-These records represent the operational standards and defensive design patterns of a **Principal Architect** with 15+ years of experience in enterprise systems design.
+These records represent the operational standards and defensive design patterns of a **Principal Architect** in enterprise systems design.
 
 ---
 
