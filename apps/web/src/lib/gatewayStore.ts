@@ -5,31 +5,53 @@ import {
   TokenBudgetTelemetry, 
   OptimizationResult, 
   CompactionResult, 
-  ScenarioPreset,
   ScenarioRegistry
 } from '../types';
+import { 
+  estimateTokens, 
+  calculatePromptBudget, 
+  calculateOverflowStatus, 
+  calculateCostEstimate, 
+  summarizeHistoryMock 
+} from './contextCalculations';
+import { SCENARIO_PRESETS } from './scenarioPresets';
 
-// Registry of default capacities matching backend parameters
-const MODEL_LIMITS: Record<string, number> = {
-  small_context: 4096,
-  standard_context: 8192,
-  large_context: 32768,
-  long_context: 128000
-};
+interface BackendSection {
+  id: string;
+  type: string; // Pydantic type maps to string
+  role?: "system" | "user" | "assistant" | "tool";
+  title: string;
+  content: string;
+  token_count: number;
+  priority: number;
+  required: boolean;
+  retained: boolean;
+  created_at: string;
+}
 
 // Initial state sections mapping standard conversational setup
 const DEFAULT_SECTIONS: ContextSection[] = [
   {
     id: "sec_sys_01",
     type: "system",
-    role: "system",
     title: "System Compliance Prompt",
     content: "You are a customer support agent. Help the customer find SKUs and process checkout records. Act professionally and empathetically at all times.",
-    tokenCount: 22,
+    tokenCount: estimateTokens("You are a customer support agent. Help the customer find SKUs and process checkout records. Act professionally and empathetically at all times."),
     priority: 1,
     required: true,
     retained: true,
     createdAt: new Date(Date.now() - 60000 * 10).toISOString()
+  },
+  {
+    id: "sec_dev_01",
+    type: "developer_instruction",
+    title: "Developer Instruction / App Guardrail",
+    content: "Always check stock availability before confirming orders. Follow standard database check procedures.",
+    tokenCount: estimateTokens("Always check stock availability before confirming orders. Follow standard database check procedures."),
+    priority: 1,
+    required: true,
+    retained: true,
+    createdAt: new Date(Date.now() - 60000 * 9).toISOString()
   },
   {
     id: "sec_hist_1",
@@ -37,7 +59,7 @@ const DEFAULT_SECTIONS: ContextSection[] = [
     role: "user",
     title: "Conversation Turn #1 (User)",
     content: "Hi there, I need to check out product code SKU-402 and shipping tracking clearances.",
-    tokenCount: 16,
+    tokenCount: estimateTokens("Hi there, I need to check out product code SKU-402 and shipping tracking clearances."),
     priority: 7,
     required: false,
     retained: true,
@@ -49,7 +71,7 @@ const DEFAULT_SECTIONS: ContextSection[] = [
     role: "assistant",
     title: "Conversation Turn #1 (Assistant)",
     content: "Checking system databases for product code SKU-402 inventory levels...",
-    tokenCount: 13,
+    tokenCount: estimateTokens("Checking system databases for product code SKU-402 inventory levels..."),
     priority: 7,
     required: false,
     retained: true,
@@ -60,7 +82,7 @@ const DEFAULT_SECTIONS: ContextSection[] = [
     type: "retrieved_document",
     title: "Knowledge Chunk (Similarity: 0.89)",
     content: "SKU-402 refers to clear-glass thermal panels. Shipping clearing timestamps range from 1 to 3 days for Tier-1 customer records.",
-    tokenCount: 24,
+    tokenCount: estimateTokens("SKU-402 refers to clear-glass thermal panels. Shipping clearing timestamps range from 1 to 3 days for Tier-1 customer records."),
     priority: 5,
     required: false,
     retained: true,
@@ -71,7 +93,7 @@ const DEFAULT_SECTIONS: ContextSection[] = [
     type: "tool_output",
     title: "Raw API JSON Query Output",
     content: '{"sku": "SKU-402", "quantity": 180, "location": "Warehouse-East-B", "restock": false}',
-    tokenCount: 20,
+    tokenCount: estimateTokens('{"sku": "SKU-402", "quantity": 180, "location": "Warehouse-East-B", "restock": false}'),
     priority: 6,
     required: false,
     retained: true,
@@ -83,7 +105,18 @@ const DEFAULT_SECTIONS: ContextSection[] = [
     role: "user",
     title: "Active Immediate Request",
     content: "Does the warehouse have enough stock for 10 units? Tell me now.",
-    tokenCount: 14,
+    tokenCount: estimateTokens("Does the warehouse have enough stock for 10 units? Tell me now."),
+    priority: 2,
+    required: true,
+    retained: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "sec_out_01",
+    type: "output_format_instruction",
+    title: "Output Format Instruction",
+    content: "Format reply as professional user feedback detailing current stock status.",
+    tokenCount: estimateTokens("Format reply as professional user feedback detailing current stock status."),
     priority: 2,
     required: true,
     retained: true,
@@ -96,10 +129,12 @@ interface GatewayState {
   apiBase: string;
   activeView: 'dashboard' | 'sandbox' | 'compactor' | 'scenarios' | 'docs';
   modelPreset: string;
+  customContextLimit: number;
   reservedOutputTokens: number;
   safetyMarginPercent: number;
   slidingWindowTurns: number;
   isBackendOffline: boolean;
+  activeStrategy: string;
   
   // Payload state
   payloadSections: ContextSection[];
@@ -117,6 +152,7 @@ interface GatewayState {
   // Actions
   setActiveView: (view: 'dashboard' | 'sandbox' | 'compactor' | 'scenarios' | 'docs') => void;
   setModelPreset: (preset: string) => void;
+  setCustomContextLimit: (limit: number) => void;
   setReservedOutputTokens: (tokens: number) => void;
   setSafetyMarginPercent: (percent: number) => void;
   setSlidingWindowTurns: (turns: number) => void;
@@ -132,56 +168,41 @@ interface GatewayState {
   addPayloadSection: (section: Omit<ContextSection, 'tokenCount' | 'retained' | 'createdAt'>) => void;
   removePayloadSection: (id: string) => void;
   updatePayloadSectionContent: (id: string, content: string) => void;
+  togglePayloadSectionRetained: (id: string) => void;
   resetPayload: () => void;
 }
 
 export const useGatewayStore = create<GatewayState>((set, get) => {
-  // Heuristic token counting fallback
-  const estimateTokensLocally = (text: string): number => {
-    if (!text) return 0;
-    return Math.ceil(text.length / 4.2); // Typical standard character-to-token ratio
-  };
 
-  // Local budget calculations for offline resilience
   const calculateLocalTelemetry = (sections: ContextSection[]): TokenBudgetTelemetry => {
-    const { modelPreset, reservedOutputTokens, safetyMarginPercent } = get();
-    const limit = MODEL_LIMITS[modelPreset] || 8192;
-    const safetyMarginTokens = Math.ceil(limit * (safetyMarginPercent / 100));
-    const availableInput = Math.max(0, limit - reservedOutputTokens - safetyMarginTokens);
+    const { modelPreset, customContextLimit, reservedOutputTokens, safetyMarginPercent } = get();
     
-    let usedInput = 0;
-    sections.forEach(sec => {
-      if (sec.retained) {
-        usedInput += estimateTokensLocally(sec.content);
-      }
-    });
+    const budgetInfo = calculatePromptBudget(
+      sections,
+      modelPreset,
+      reservedOutputTokens,
+      safetyMarginPercent,
+      customContextLimit
+    );
 
-    const remaining = Math.max(0, availableInput - usedInput);
-    const overflow = Math.max(0, usedInput - availableInput);
-    const ratio = availableInput > 0 ? parseFloat((usedInput / availableInput).toFixed(3)) : 0.0;
-    
-    let risk: "safe" | "warning" | "critical" | "overflow" = "safe";
-    if (ratio >= 1.0 || overflow > 0) risk = "overflow";
-    else if (ratio >= 0.90) risk = "critical";
-    else if (ratio >= 0.70) risk = "warning";
-
-    const cost = parseFloat(((usedInput * 0.00000015) + (reservedOutputTokens * 0.00000060)).toFixed(6));
+    const risk = calculateOverflowStatus(budgetInfo.utilizationRatio, budgetInfo.overflowTokens);
+    const cost = calculateCostEstimate(budgetInfo.usedInputTokens, reservedOutputTokens, modelPreset);
     
     let latency: "low" | "moderate" | "high" | "extreme" = "low";
-    if (usedInput >= 10000) latency = "extreme";
-    else if (usedInput >= 5000) latency = "high";
-    else if (usedInput >= 2000) latency = "moderate";
+    if (budgetInfo.usedInputTokens >= 10000) latency = "extreme";
+    else if (budgetInfo.usedInputTokens >= 5000) latency = "high";
+    else if (budgetInfo.usedInputTokens >= 2000) latency = "moderate";
 
     return {
       modelPreset,
-      contextLimit: limit,
+      contextLimit: budgetInfo.contextLimit,
       reservedOutputTokens,
-      safetyMarginTokens,
-      availableInputTokens: availableInput,
-      usedInputTokens: usedInput,
-      remainingTokens: remaining,
-      overflowTokens: overflow,
-      utilizationRatio: ratio,
+      safetyMarginTokens: budgetInfo.safetyMarginTokens,
+      availableInputTokens: budgetInfo.availableInputTokens,
+      usedInputTokens: budgetInfo.usedInputTokens,
+      remainingTokens: budgetInfo.remainingTokens,
+      overflowTokens: budgetInfo.overflowTokens,
+      utilizationRatio: budgetInfo.utilizationRatio,
       riskStatus: risk,
       estimatedCostUSD: cost,
       latencyRiskCategory: latency
@@ -192,11 +213,13 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
     // Config defaults
     apiBase: "http://localhost:8000",
     activeView: 'dashboard',
-    modelPreset: "standard_context",
+    modelPreset: "gpt4o_mini",
+    customContextLimit: 32768,
     reservedOutputTokens: 1000,
     safetyMarginPercent: 10,
     slidingWindowTurns: 5,
-    isBackendOffline: false,
+    isBackendOffline: true, // Offline-first default
+    activeStrategy: "fifo",
     
     // Payload lists
     payloadSections: DEFAULT_SECTIONS,
@@ -217,6 +240,10 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
       set({ modelPreset: preset });
       get().executeAnalyzePayload();
     },
+    setCustomContextLimit: (limit) => {
+      set({ customContextLimit: limit });
+      get().executeAnalyzePayload();
+    },
     setReservedOutputTokens: (tokens) => {
       set({ reservedOutputTokens: tokens });
       get().executeAnalyzePayload();
@@ -231,7 +258,7 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
       get().executeAnalyzePayload();
     },
 
-    // 🔍 Analysis API Command
+    // Ingestion analysis logic
     executeAnalyzePayload: async () => {
       const { apiBase, payloadSections, modelPreset, reservedOutputTokens, safetyMarginPercent } = get();
       set({ isAnalyzing: true });
@@ -255,11 +282,10 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
           }))
         });
         
-        // Map backend response token counts back to local section records
         const counts = response.data.sectionTokenCounts;
         const updated = payloadSections.map(s => ({
           ...s,
-          tokenCount: counts[s.id] || estimateTokensLocally(s.content)
+          tokenCount: counts[s.id] || estimateTokens(s.content)
         }));
         
         set({ 
@@ -267,14 +293,12 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
           telemetry: response.data.metrics,
           isBackendOffline: false
         });
-      } catch (err) {
-        logger_fallback: console.warn("FastAPI backend offline. Triggering High-Fidelity Client-side counting.");
-        
-        // Execute robust local calculations on connection failure
+      } catch {
+        // Fast fallback to offline client calculations
         const localTelemetry = calculateLocalTelemetry(payloadSections);
         const updated = payloadSections.map(s => ({
           ...s,
-          tokenCount: estimateTokensLocally(s.content)
+          tokenCount: estimateTokens(s.content)
         }));
         
         set({ 
@@ -287,7 +311,7 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
       }
     },
 
-    // ⚖️ Eviction API Command
+    // Eviction logic
     executeOptimizePayload: async (strategy) => {
       const { apiBase, payloadSections, modelPreset, reservedOutputTokens, safetyMarginPercent, slidingWindowTurns } = get();
       set({ isOptimizing: true });
@@ -313,16 +337,15 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
           slidingWindowTurns
         });
         
-        // Map backend schema optimized arrays back to client structures
         const res: OptimizationResult = {
           strategyApplied: response.data.strategyApplied,
           beforeTokenCount: response.data.beforeTokenCount,
           afterTokenCount: response.data.afterTokenCount,
           savingsTokens: response.data.savingsTokens,
           riskStatusAfter: response.data.riskStatusAfter,
-          retainedSections: response.data.retainedSections.map((s: any) => ({
+          retainedSections: response.data.retainedSections.map((s: BackendSection) => ({
             id: s.id,
-            type: s.type,
+            type: s.type as ContextSection["type"],
             role: s.role,
             title: s.title,
             content: s.content,
@@ -332,9 +355,9 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
             retained: s.retained,
             createdAt: s.created_at
           })),
-          removedSections: response.data.removedSections.map((s: any) => ({
+          removedSections: response.data.removedSections.map((s: BackendSection) => ({
             id: s.id,
-            type: s.type,
+            type: s.type as ContextSection["type"],
             role: s.role,
             title: s.title,
             content: s.content,
@@ -350,10 +373,8 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
           optimizationResult: res,
           isBackendOffline: false
         });
-      } catch (err) {
-        console.warn("Backend offline. Simulating optimization algorithm sandbox.");
-        
-        // OFFLINE HIGH-FIDELITY SIMULATION OF OPTIMIZATION RULES
+      } catch {
+        // Fallback simulation of optimizer sandbox using client logic
         const telemetry = calculateLocalTelemetry(payloadSections);
         const limit = telemetry.availableInputTokens;
         
@@ -361,70 +382,61 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
         const removed: ContextSection[] = [];
         let runningTokens = 0;
         
-        // Load System Prompt (Priority 1) and Active User Input (Priority 2)
+        // Retain System Prompt (Priority 1), Developer Instruction, Active User Input, Output Format Instruction
         payloadSections.forEach(s => {
-          const tc = estimateTokensLocally(s.content);
           if (s.required) {
-            const cloned = { ...s, tokenCount: tc, retained: true };
-            retained.push(cloned);
-            runningTokens += tc;
+            retained.push({ ...s, retained: true });
+            runningTokens += s.tokenCount;
           }
         });
         
-        // Handle modular algorithms offline
         const evictables = payloadSections.filter(s => !s.required);
         
         if (strategy === "fifo") {
-          // FIFO chronological turn drop
           const sorted = [...evictables].sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
           sorted.forEach(s => {
-            const tc = estimateTokensLocally(s.content);
-            if (runningTokens + tc <= limit) {
-              retained.push({ ...s, tokenCount: tc, retained: true });
-              runningTokens += tc;
+            if (runningTokens + s.tokenCount <= limit) {
+              retained.push({ ...s, retained: true });
+              runningTokens += s.tokenCount;
             } else {
-              removed.push({ ...s, tokenCount: tc, retained: false });
+              removed.push({ ...s, retained: false });
             }
           });
         } else if (strategy === "sliding_window") {
-          // Sliding window of N recent turns
           const history = evictables.filter(s => s.type === "history");
           const others = evictables.filter(s => s.type !== "history");
           
           const sortedHist = [...history].sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
           const splitIdx = Math.max(0, sortedHist.length - slidingWindowTurns);
           
-          sortedHist.slice(0, splitIdx).forEach(s => removed.push({ ...s, tokenCount: estimateTokensLocally(s.content), retained: false }));
-          sortedHist.slice(splitIdx).forEach(s => retained.push({ ...s, tokenCount: estimateTokensLocally(s.content), retained: true }));
-          others.forEach(s => retained.push({ ...s, tokenCount: estimateTokensLocally(s.content), retained: true }));
+          sortedHist.slice(0, splitIdx).forEach(s => removed.push({ ...s, retained: false }));
+          sortedHist.slice(splitIdx).forEach(s => retained.push({ ...s, retained: true }));
+          others.forEach(s => retained.push({ ...s, retained: true }));
         } else if (strategy === "priority") {
-          // Priority Matrix Hierarchy (Priority 8 down to 3)
-          const sorted = [...evictables].sort((a,b) => b.priority - a.priority); // High number (low importance) first
+          const sorted = [...evictables].sort((a,b) => b.priority - a.priority); // Low priority first
           sorted.forEach(s => {
-            const tc = estimateTokensLocally(s.content);
-            if (runningTokens + tc <= limit) {
-              retained.push({ ...s, tokenCount: tc, retained: true });
-              runningTokens += tc;
+            if (runningTokens + s.tokenCount <= limit) {
+              retained.push({ ...s, retained: true });
+              runningTokens += s.tokenCount;
             } else {
-              removed.push({ ...s, tokenCount: tc, retained: false });
+              removed.push({ ...s, retained: false });
             }
           });
         } else {
-          // RAG doc trimming
+          // rag_trim
           const docs = evictables.filter(s => s.type === "retrieved_document");
           const others = evictables.filter(s => s.type !== "retrieved_document");
           
           const sortedDocs = [...docs].sort((a,b) => b.priority - a.priority); // Low relevance first
           sortedDocs.forEach(s => {
-            const tc = estimateTokensLocally(s.content);
-            if (runningTokens + tc <= limit) {
-              retained.push({ ...s, tokenCount: tc, retained: true });
-              runningTokens += tc;
+            if (runningTokens + s.tokenCount <= limit) {
+              retained.push({ ...s, retained: true });
+              runningTokens += s.tokenCount;
             } else {
-              removed.push({ ...s, tokenCount: tc, retained: false });
+              removed.push({ ...s, retained: false });
             }
           });
-          others.forEach(s => retained.push({ ...s, tokenCount: estimateTokensLocally(s.content), retained: true }));
+          others.forEach(s => retained.push({ ...s, retained: true }));
         }
 
         const totalBefore = telemetry.usedInputTokens;
@@ -447,7 +459,7 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
       }
     },
 
-    // ⚙️ Compaction API Command
+    // Compactor logic
     executeCompactPayload: async (goal) => {
       const { apiBase, payloadSections } = get();
       set({ isCompacting: true });
@@ -479,7 +491,6 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
         
         const compactionRes: CompactionResult = response.data;
         
-        // Construct the new summary section block inside prompt payload
         const summaryContent = (
             `[GATEWAY STATE MEMORY NODE - COMPACTED]\n` +
             `Summary: ${compactionRes.summary}\n` +
@@ -490,7 +501,7 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
         const summaryBlock: ContextSection = {
           id: `sec_sum_${Date.now()}`,
           type: "summary",
-          title: "Gateway State Memory summary",
+          title: "Gateway State Memory Summary",
           content: summaryContent,
           tokenCount: compactionRes.compactedTokens,
           priority: 3,
@@ -499,7 +510,6 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
           createdAt: new Date().toISOString()
         };
         
-        // Strip out the raw historical turns and inject our summary block
         const filtered = payloadSections.filter(s => s.type !== "history" || s.required);
         const updated = [summaryBlock, ...filtered];
         
@@ -510,45 +520,23 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
         });
         
         get().executeAnalyzePayload();
-      } catch (err) {
-        console.warn("Backend offline. Running simulated compaction.");
-        
-        // Execute Offline High-Fidelity Compaction Mock
-        const rawHistoryText = history.map(h => h.content).join("\n");
-        const original = history.reduce((sum, h) => sum + estimateTokensLocally(h.content), 0);
-        
-        const simSummary = (
-            "Customer requested cart checkout status details for inventory SKU-402 " +
-            "and requested delivery clearances. Warehouse restock queues were checked."
-        );
-        const simFacts = ["Target SKU: SKU-402", "Restock Status: False"];
-        const simTasks = ["Log order invoice clearances with shipping tracking replica."];
-        
-        const mockRes: CompactionResult = {
-          summary: simSummary,
-          retainedFacts: simFacts,
-          openTasks: simTasks,
-          droppedDetails: ["Customer greeting strings", "Repeated support pleasantries"],
-          confidence: 0.95,
-          originalTokens: original,
-          compactedTokens: Math.ceil(simSummary.length / 4.2),
-          savingsTokens: Math.max(0, original - Math.ceil(simSummary.length / 4.2)),
-          validationStatus: "retry_success"
-        };
+      } catch {
+        // High fidelity client compaction mock
+        const mockResult = summarizeHistoryMock(history);
         
         const summaryContent = (
             `[GATEWAY STATE MEMORY NODE - COMPACTED]\n` +
-            `Summary: ${mockRes.summary}\n` +
-            `Retained Facts: ${mockRes.retainedFacts.join(" | ")}\n` +
-            `Open Actions: ${mockRes.openTasks.join(" | ")}`
+            `Summary: ${mockResult.summary}\n` +
+            `Retained Facts: ${mockResult.retainedFacts.join(" | ")}\n` +
+            `Open Actions: ${mockResult.openTasks.join(" | ")}`
         );
         
         const summaryBlock: ContextSection = {
           id: `sec_sum_${Date.now()}`,
           type: "summary",
-          title: "Gateway State Memory summary",
+          title: "Gateway State Memory Summary",
           content: summaryContent,
-          tokenCount: mockRes.compactedTokens,
+          tokenCount: mockResult.compactedTokens,
           priority: 3,
           required: false,
           retained: true,
@@ -559,7 +547,17 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
         const updated = [summaryBlock, ...filtered];
         
         set({
-          compactionResult: mockRes,
+          compactionResult: {
+            summary: mockResult.summary,
+            retainedFacts: mockResult.retainedFacts,
+            openTasks: mockResult.openTasks,
+            droppedDetails: mockResult.droppedDetails,
+            confidence: 0.95,
+            originalTokens: history.reduce((acc, h) => acc + h.tokenCount, 0),
+            compactedTokens: mockResult.compactedTokens,
+            savingsTokens: mockResult.savings,
+            validationStatus: "retry_success"
+          },
           payloadSections: updated,
           isBackendOffline: true
         });
@@ -570,156 +568,27 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
       }
     },
 
-    // 🎒 Scenario Presets API Command
+    // Fetch scenario presets
     fetchScenarios: async () => {
-      const { apiBase } = get();
       set({ scenariosLoading: true });
-      
       try {
-        const response = await axios.get(`${apiBase}/api/scenarios`);
-        
-        // Map backend context section camel_cases back to client types
-        const registry: ScenarioRegistry = {};
-        Object.keys(response.data).forEach(key => {
-          const item = response.data[key];
-          registry[key] = {
-            title: item.title,
-            description: item.description,
-            failureMode: item.failureMode,
-            sections: item.sections.map((s: any) => ({
-              id: s.id,
-              type: s.type,
-              role: s.role,
-              title: s.title,
-              content: s.content,
-              tokenCount: s.token_count,
-              priority: s.priority,
-              required: s.required,
-              retained: s.retained,
-              createdAt: s.created_at
-            }))
-          };
-        });
-        
-        set({ 
-          scenarios: registry,
-          isBackendOffline: false
-        });
-      } catch (err) {
-        console.warn("Backend offline. Loading local mock scenarios.");
-        
-        // OFFLINE HIGH-FIDELITY SCENARIOS PRESET FALLBACK
-        // Load simple mock scenarios mirroring scenarios.py
-        const registry: ScenarioRegistry = {
-          system_prompt_exploder: {
-            title: "System Prompt Exploder (Trap 1)",
-            description: "Injects a massive corporate directive prompt (approx. 4,500 tokens) to demonstrate how over-bloated static instructions consume available conversational headroom.",
-            failureMode: "Primacy exhaustion. Normal dialogue is choked due to zero free input token capacity.",
-            sections: [
-              {
-                id: "sec_sys_exploder",
-                type: "system",
-                title: "Bloated Behavioral System prompt",
-                content: "ENTERPRISE PROTOCOL DIRECTIONS:\n" + "This is a super verbose system instruction to test prompt constraints. ".repeat(300),
-                tokenCount: 4500,
-                priority: 1,
-                required: true,
-                retained: true,
-                createdAt: new Date().toISOString()
-              },
-              {
-                id: "sec_usr_input",
-                type: "active_user_input",
-                title: "Active query",
-                content: "Hello, check stock shipping details for SKU-402.",
-                tokenCount: 12,
-                priority: 2,
-                required: true,
-                retained: true,
-                createdAt: new Date().toISOString()
-              }
-            ]
-          },
-          lost_in_the_middle: {
-            title: "Lost-in-the-Middle Demo (Trap 5)",
-            description: "Places a critical password ('VIP-RETAIL-2026') at the absolute geometric center of a long conversation, surrounded by standard text noise.",
-            failureMode: "Semantic retrieval degradation in the attention saturation valley of long contexts.",
-            sections: [
-              {
-                id: "sec_sys_05",
-                type: "system",
-                title: "Compliance Extractor instructions",
-                content: "You are a secure extractor. Retrieve the verification passcode from conversation history.",
-                tokenCount: 20,
-                priority: 1,
-                required: true,
-                retained: true,
-                createdAt: new Date().toISOString()
-              },
-              // Surround prefix turns
-              {
-                id: "sec_lost_prefix",
-                type: "history",
-                title: "Filler turn",
-                content: "This is filler context discussions about sales pipelines, server latency schedules, and shipping indices. The secret passcode is not in this message.",
-                tokenCount: 1500,
-                priority: 7,
-                required: false,
-                retained: true,
-                createdAt: new Date(Date.now() - 5000).toISOString()
-              },
-              // Secret turn in center
-              {
-                id: "sec_lost_secret",
-                type: "history",
-                title: "Middle message block",
-                content: "IMPORTANT TRANSACTION CLEARANCE CODE: The activation override passcode is: VIP-RETAIL-2026. Keep this secret.",
-                tokenCount: 200,
-                priority: 7,
-                required: false,
-                retained: true,
-                createdAt: new Date(Date.now() - 4000).toISOString()
-              },
-              // Suffix turns
-              {
-                id: "sec_lost_suffix",
-                type: "history",
-                title: "Filler turn suffix",
-                content: "This is additional standard discussion about database logs, product design reviews, customer service desk timings. The code is not here.",
-                tokenCount: 1500,
-                priority: 7,
-                required: false,
-                retained: true,
-                createdAt: new Date(Date.now() - 3000).toISOString()
-              },
-              {
-                id: "sec_usr_05",
-                type: "active_user_input",
-                title: "Active query",
-                content: "What is the override clearance passcode? Search strictly inside history.",
-                tokenCount: 15,
-                priority: 2,
-                required: true,
-                retained: true,
-                createdAt: new Date().toISOString()
-              }
-            ]
-          }
-        };
-        
+        // Return local scenario presets list directly for offline-first compliance
+        const registry: ScenarioRegistry = SCENARIO_PRESETS;
         set({ 
           scenarios: registry,
           isBackendOffline: true
         });
+      } catch (err) {
+        console.error(err);
       } finally {
         set({ scenariosLoading: false });
       }
     },
 
-    // Payload operations
+    // Payload editors
     addPayloadSection: (section) => {
       const { payloadSections } = get();
-      const tc = estimateTokensLocally(section.content);
+      const tc = estimateTokens(section.content);
       const newSec: ContextSection = {
         ...section,
         tokenCount: tc,
@@ -745,7 +614,7 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
           return {
             ...s,
             content,
-            tokenCount: estimateTokensLocally(content)
+            tokenCount: estimateTokens(content)
           };
         }
         return s;
@@ -755,11 +624,27 @@ export const useGatewayStore = create<GatewayState>((set, get) => {
       get().executeAnalyzePayload();
     },
 
+    togglePayloadSectionRetained: (id) => {
+      const { payloadSections } = get();
+      const updated = payloadSections.map(s => {
+        if (s.id === id) {
+          return {
+            ...s,
+            retained: !s.retained
+          };
+        }
+        return s;
+      });
+      set({ payloadSections: updated });
+      get().executeAnalyzePayload();
+    },
+
     resetPayload: () => {
       set({ 
         payloadSections: DEFAULT_SECTIONS,
         optimizationResult: null,
-        compactionResult: null
+        compactionResult: null,
+        modelPreset: "gpt4o_mini"
       });
       get().executeAnalyzePayload();
     }

@@ -4,7 +4,9 @@ export type ContextSectionType =
   | "retrieved_document" 
   | "tool_output" 
   | "active_user_input" 
-  | "summary";
+  | "summary"
+  | "developer_instruction"
+  | "output_format_instruction";
 
 export interface ContextSection {
   id: string;

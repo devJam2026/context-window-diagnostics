@@ -11,7 +11,6 @@ export default function ContextMemoryStack() {
   if (!telemetry) return null;
 
   const {
-    contextLimit,
     availableInputTokens,
     usedInputTokens,
     remainingTokens,
@@ -25,11 +24,13 @@ export default function ContextMemoryStack() {
   const getSectionColor = (type: string) => {
     switch (type) {
       case 'system': return 'bg-indigo-600';
+      case 'developer_instruction': return 'bg-purple-600';
       case 'history': return 'bg-gray-600';
       case 'retrieved_document': return 'bg-emerald-500';
       case 'tool_output': return 'bg-cyan-500';
       case 'active_user_input': return 'bg-teal-600';
       case 'summary': return 'bg-amber-500';
+      case 'output_format_instruction': return 'bg-amber-600';
       default: return 'bg-slate-400';
     }
   };
@@ -37,35 +38,36 @@ export default function ContextMemoryStack() {
   const getSectionTextColor = (type: string) => {
     switch (type) {
       case 'system': return 'text-indigo-600 bg-indigo-50 border-indigo-100';
+      case 'developer_instruction': return 'text-purple-600 bg-purple-50 border-purple-100';
       case 'history': return 'text-slate-600 bg-slate-50 border-slate-100';
       case 'retrieved_document': return 'text-emerald-600 bg-emerald-50 border-emerald-100';
       case 'tool_output': return 'text-cyan-600 bg-cyan-50 border-cyan-100';
       case 'active_user_input': return 'text-teal-600 bg-teal-50 border-teal-100';
       case 'summary': return 'text-amber-600 bg-amber-50 border-amber-100';
+      case 'output_format_instruction': return 'text-amber-750 bg-amber-50 border-amber-100';
       default: return 'text-slate-600 bg-slate-50 border-slate-100';
     }
   };
 
   // Determine scaling basis
-  // If we have overflow, total scale width matches usedInputTokens.
-  // Otherwise, scale width matches availableInputTokens to show Free budget.
   const totalScaleBasis = overflowTokens > 0 ? usedInputTokens : availableInputTokens;
 
   return (
     <div className="glass-card p-6 rounded-3xl w-full flex flex-col gap-5 relative">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Visual Memory Stack Bar</span>
           <h2 className="font-black text-base text-slate-800 tracking-tight mt-0.5">
             Prompt buffer composition layout map
           </h2>
         </div>
-        <div className="flex items-center gap-4 text-xs font-bold text-slate-500">
+        <div className="flex flex-wrap items-center gap-3 text-[10px] font-black uppercase text-slate-500">
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span> System</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-purple-600"></span> Guardrails</span>
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-gray-600"></span> History</span>
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Chunks</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-cyan-500"></span> Tools</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Summaries</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-teal-600"></span> User Query</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-600"></span> Format</span>
         </div>
       </div>
 

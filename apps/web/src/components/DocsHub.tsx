@@ -126,7 +126,7 @@ export default function DocsHub() {
                 </div>
                 <div className="p-4 rounded-xl bg-rose-50 border border-rose-100 text-rose-900 font-bold">
                   <div className="text-xs uppercase font-black">Critical</div>
-                  <span className="text-[10px] text-rose-600 mt-1 block">90% &le; U &le; 100% | High "lost-in-the-middle" risk</span>
+                  <span className="text-[10px] text-rose-600 mt-1 block">90% &le; U &le; 100% | High &quot;lost-in-the-middle&quot; risk</span>
                 </div>
                 <div className="p-4 rounded-xl bg-red-100 border border-red-200 text-red-950 font-bold">
                   <div className="text-xs uppercase font-black">Overflow</div>

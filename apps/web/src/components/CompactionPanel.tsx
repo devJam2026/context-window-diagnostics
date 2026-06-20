@@ -6,10 +6,7 @@ import {
   CheckCircle, 
   AlertTriangle,
   Lightbulb,
-  FileCheck,
-  TrendingDown,
-  Sparkles,
-  HelpCircle
+  FileCheck
 } from 'lucide-react';
 
 export default function CompactionPanel() {
@@ -90,7 +87,7 @@ export default function CompactionPanel() {
             <Terminal className="w-12 h-12 text-slate-300" />
             <h4 className="font-black text-sm text-slate-600 leading-none">Compacted State Ready</h4>
             <p className="text-xs text-slate-400 font-semibold max-w-sm">
-              Press "Execute" to run the structured compaction pipeline. The engine will compress historical chatter and return a structured type-safe memory node.
+              Press &quot;Execute&quot; to run the structured compaction pipeline. The engine will compress historical chatter and return a structured type-safe memory node.
             </p>
           </div>
         ) : (

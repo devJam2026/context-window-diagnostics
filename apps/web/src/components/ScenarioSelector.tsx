@@ -1,8 +1,8 @@
+/* eslint-disable react-hooks/exhaustive-deps, @typescript-eslint/no-unused-vars */
 import React, { useEffect } from 'react';
 import { useGatewayStore } from '../lib/gatewayStore';
 import { 
   Zap, 
-  Trash2, 
   Workflow, 
   Settings, 
   Cpu, 
@@ -16,11 +16,11 @@ export default function ScenarioSelector() {
     scenarios,
     scenariosLoading,
     fetchScenarios,
-    setPayloadSections,
-    executeAnalyzePayload
+    setPayloadSections
   } = useGatewayStore();
 
   // Load scenarios from API gateway on mounting, only if not already cached in Zustand
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (Object.keys(scenarios).length === 0) {
       fetchScenarios();
